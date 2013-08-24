@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>meSpeak.js: Text-to-Speech on the Web</title>
+  <script>
+    // This demo is licensed under the GNU GPL.
+  </script>
+  <script type="text/javascript" src="mespeak.js"></script>
+  <script type="text/javascript">
+    meSpeak.loadConfig("mespeak_config.json");
+    meSpeak.loadVoice("voices/en/en.json");
+  
+    function loadVoice(id) {
+      var fname="voices/"+id+".json";
+      meSpeak.loadVoice(fname, voiceLoaded);
+    }
+  
+    function voiceLoaded(success, message) {
+      if (success) {
+        alert("Voice loaded: "+message+".");
+      }
+      else {
+        alert("Failed to load a voice: "+message);
+      }
+    }
+    
+    /*
+      auto-speak glue:
+      additional functions for generating a link and parsing any url-params provided for auto-speak
+    */
+    
+    var formFields = ['text','amplitude','wordgap','pitch','speed'];
+    
+    function autoSpeak() {
+      // checks url for speech params, sets and plays them, if found.
+      // also adds eventListeners to update a link with those params using current values
+      var i,l,n,params,pairs,pair,
+          speakNow=null,
+          useDefaultVoice=true,
+          q=document.location.search,
+          f=document.getElementById('speakData'),
+          s=document.getElementById('voiceSelect');
+      if (!f || !s) return; // form and/or select not found
+      if (q.length>1) {
+        // parse url-params
+        params={};
+        pairs=q.substring(1).split('&');
+        for (i=0, l=pairs.length; i<l; i++) {
+          pair=pairs[i].split('=');
+          if (pair.length==2) params[pair[0]]=decodeURIComponent(pair[1]);
+        }
+        // insert params into the form or complete them from defaults in form
+        for (i=0, l=formFields.length; i<l; i++) {
+          n=formFields[i];
+          if (params[n]) {
+            f.elements[n].value=params[n];
+          }
+          else {
+            params[n]=f.elements[n].value;
+          }
+        }
+        // compile a function to speak with given params for later use
+        // play only, if param "auto" is set to "true" or "1"
+        if (params.auto=='true' || params.auto=='1') {
+          speakNow = function() {
+            meSpeak.speak(params.text, {
+              amplitude: params.amplitude,
+              wordgap: params.wordgap,
+              pitch: params.pitch,
+              speed: params.speed
+            });
+          };
+        }
+        // check for any voice specified by the params (other than the default)
+        if (params.voice && params.voice!=s.options[s.selectedIndex].value) {
+          // search selected voice in selector
+          for (i=0, l=s.options.length; i<l; i++) {
+            if (s.options[i].value==params.voice) {
+              // voice found: adjust the form, load voice-data and provide a callback to speak
+              s.selectedIndex=i;
+              meSpeak.loadVoice('voices/'+params.voice+'.json', function(success, message) {
+                if (success) {
+                  if (speakNow) speakNow();
+                }
+                else {
+                  if (window.console) console.log('Failed to load requested voice: '+message);
+                }
+              });
+              useDefaultVoice=false;
+              break;
+            }
+          }
+        }
+        // standard voice: speak (deferred until config is loaded)
+        if (speakNow && useDefaultVoice) speakNow();
+      }
+      // initial url-processing done, add eventListeners for updating the link
+      for (i=0, l=formFields.length; i<l; i++) {
+        f.elements[formFields[i]].addEventListener('change', updateSpeakLink, false);
+      }
+      s.addEventListener('change', updateSpeakLink, false);
+      // finally, inject a link with current values into the page
+      updateSpeakLink();
+    }
+    
+    function updateSpeakLink() {
+      // injects a link for auto-execution using current values into the page
+      var i,l,n,f,s,v,url,el,params=new Array();
+      // collect values from form
+      f=document.getElementById('speakData');
+      for (i=0, l=formFields.length; i<l; i++) {
+        n=formFields[i];
+        params.push(n+'='+encodeURIComponent(f.elements[n].value));
+      }
+      // get current voice, default to 'en/en' as a last resort
+      s=document.getElementById('voiceSelect');
+      if (s.selectedIndex>=0) v=s.options[s.selectedIndex].value;
+      if (!v) v=meSpeak.getDefaultVoice() || 'en/en';
+      params.push('voice='+encodeURIComponent(v));
+      params.push('auto=true');
+      // assemble the url and add it as GET-link to the page
+      url='?'+params.join('&');
+      url=url.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');
+      el=document.getElementById('linkdisplay');
+      if (el) el.innerHTML='Instant Link: <a href="'+url+'">Speak this</a>.';
+    }
+    
+    // trigger auto-speak at DOMContentLoaded
+    if (document.addEventListener) document.addEventListener( "DOMContentLoaded", autoSpeak, false );
+    
+    /*
+      end of auto-speak glue
+    */
+
+  </script>
+
+<style type="text/css">
+	body {max-width: 1000px; }
+	h3 { margin-top: 2em; }
+	p.codesample
+	{
+		margin-left: 2em;
+		white-space: pre;
+		font-family: monospace;
+	}
+	hr.separator
+	{
+		margin-top: 2em;
+		margin-bottom: 2em;
+	}
+	blockquote.note
+	{
+		margin-left: 2em;
+		font-size: 90%;
+	}
+	a.noteLink { text-decoration: none; }
+	ul.bottomMargin li { margin-bottom: 0.2em; }
+	dl.history dt
+	{
+		font-weight: normal;
+		font-variant: normal;
+		float: left;
+		vertical-align: top;
+		clear: both;
+	}
+	dl.history dd
+	{
+		vertical-align: top;
+		margin-left: 3.5em;
+		margin-bottom: 0.2em;
+	}
+</style>
+</head>
+<body>
+  <h1>meSpeak.js</h1>
+  <h2>Text-To-Speech on the Web</h2>
+  <form id="speakData" onsubmit="meSpeak.speak(text.value, { amplitude: amplitude.value, wordgap: wordgap.value, pitch: pitch.value, speed: speed.value }); return false">
+    Text: <input type="text" name="text" size=50 value="Never gonna give, you, up.">
+    Amplitude: <input type="text" name="amplitude" size=5 value="100">
+    Pitch: <input type="text" name="pitch" size=5 value="50">
+    Speed: <input type="text" name="speed" size=5 value="175">
+    Word gap: <input type="text" name="wordgap" size=5 value="0">
+    <input type="submit" value="Go!">
+  </form>
+  <form onsubmit="return false">
+    Voice: <select id="voiceSelect"  onchange="loadVoice(this.options[this.selectedIndex].value);">
+    	<option value="ca">ca - Catalan</option>
+		<option value="cs">cs - Czech</option>
+		<option value="de">de - German</option>
+		<option value="el">el - Greek</option>
+		<option value="en/en" selected="selected">en - English</option>
+		<option value="en/en-n">en-n - English, regional</option>
+		<option value="en/en-rp">en-rp - English, regional</option>
+		<option value="en/en-sc">en-sc - English, Scottish</option>
+		<option value="en/en-us">en-us - English, US</option>
+		<option value="en/en-wm">en-wm - English, regional</option>
+		<option value="eo">eo - Esperanto</option>
+		<option value="es">es - Spanish</option>
+		<option value="es-la">es-la - Spanish, Latin America</option>
+		<option value="fi">fi - Finnish</option>
+		<option value="fr">fr - French</option>
+		<option value="hu">hu - Hungarian</option>
+		<option value="it">it - Italian</option>
+		<option value="kn">kn - Kannada</option>
+		<option value="la">la - Latin</option>
+		<option value="lv">lv - Latvian</option>
+		<option value="nl">nl - Dutch</option>
+		<option value="pl">pl - Polish</option>
+		<option value="pt">pt - Portuguese, Brazil</option>
+		<option value="pt-pt">pt-pt - Portuguese, European</option>
+		<option value="ro">ro - Romanian</option>
+		<option value="sk">sk - Slovak</option>
+		<option value="sv">sv - Swedish</option>
+		<option value="tr">tr - Turkish</option>
+		<option value="zh">zh - Mandarin Chinese (Pinyin)</option>
+		<option value="zh-yue">zh-yue - Cantonese Chinese</option>
+	</select>
+  </form>
+  <p id="linkdisplay"></p>
+  <hr class="separator" />
+  <h3>About</h3>
+  <p>
+  	<strong>meSpeak.js</strong> (modulary enhanced speak.js) is a 100% client-side JavaScript text-to-speech library based on the <a href="http://syntensity.com/static/espeak.html" target="_blank">speak.js</a> project (see below).<br />
+  	meSpeak.js adds support for Webkit and Safari and introduces loadable voice modules. Also there is no more need for an embedding HTML-element.<br />
+  	Separating the code of the library from config-data and voice definitions should help future optimizations of the core part of <a href="http://syntensity.com/static/espeak.html" target="_blank">speak.js</a>.<br />
+  	All separated data has been compressed to base64-encoded strings from the original binary files to save some bandwidth (compared to JS-arrays of raw 8-bit data).<br />
+  	Browser requirements: Firefox, Chrome/Opera, Webkit, and Safari (MSIE11 is expected to be compliant).<br /><br />
+  	<strong>v.1.1</strong> adds support for the <em>Web Audio API</em> (AudioContext), which is now the preferred option for playback with the HTMLAudioElement as a fall-back.<br />Thanks to the new method of playback meSpeak.js was tested successfully with iOS/Safari (iOS 6).<br />
+  	Also starting with v.1.1 there is now an option to rather export the raw speech-data than playing the sound (see: options, &quot;rawdata&quot;).<br /><br />
+  	<strong>v.1.2</strong> adds volume control and the capacity to play back cached streams generated using the &quot;rawdata&quot; option.<br /><br />
+  	meSpeak.js 2011-2013 by Norbert Landsteiner, mass:werk &ndash; media environments; <a href="http://www.masswerk.at/mespeak/">http://www.masswerk.at/mespeak/</a>
+  </p>
+  
+  <h3>Usage</h3>
+  <p class="codesample">meSpeak.loadConfig(&quot;mespeak_config.json&quot;);
+meSpeak.loadVoice('en-us.json');
+meSpeak.speak('hello world');
+meSpeak.speak('hello world', { option1: value1, option2: value2 .. });
+options:
+* amplitude: How loud the voice will be (default: 100)
+* pitch:     The voice pitch (default: 50)
+* speed:     The speed at which to talk (words per minute) (default: 175)
+* voice:     Which voice to use (default: last voice loaded or defaultVoice, see below)
+* wordgap:   Additional gap between words in 10 ms units (default: 0)
+* volume:    volume relative to the global volume (number, 0..1, default: 1)
+             Note: the relative volume has no effect on the export using option 'rawdata'.
+* rawdata:    do not play, return data only.
+  The type of the returned data is derived from the value (case-insensitive) of 'rawdata':
+  - 'base64': returns a base64-encoded string.
+  - 'mime':   returns a base64-encoded data-url (including the MIME-header).
+              (synonyms: 'data-url', 'data-uri', 'dataurl', 'datauri')
+  - 'array':  returns a plain Array object with uint 8 bit data.
+  - default (any other value): returns a Uint8Array typed array of the generated wav-file.
+  Note: The value of 'rawdata' must evaluate to boolean 'true' in order to be recognized.
+
+if (meSpeak.isVoiceLoaded('de') meSpeak.setDefaultVoice('de');
+// note: the default voice is always the the last voice loaded
+
+meSpeak.loadVoice('fr.json', userCallback);
+// userCallback is an optional callback-handler. The callback will receive two arguments:
+// * a boolean flag for success
+// * either the id of the voice, or a reason for errors ('network error', 'data error', 'file error')
+alert(meSpeak.getDefaultVoice()) // 'fr'
+
+if (meSpeak.isConfigLoaded()) meSpeak.speak('Configuration data has been loaded.');
+// note: any calls to speak() will be deferred, if no valid config-data has been loaded yet.
+
+meSpeak.setVolume(0.5);
+// note: sets the global playback-volume, any sounds currently playing will be updated immediately
+// with respect to their relative volume (if specified).
+
+alert(meSpeak.getVolume()) // 0.5
+
+var browserCanPlayWavFiles = meSpeak.canPlay(); // test for compatibility
+
+// export speech-data as a stream (no playback):
+var myUint8Array = meSpeak.speak('hello world', { 'rawdata': true });      // typed array
+var base64String = meSpeak.speak('hello world', { 'rawdata': 'base64' });
+var myDataUrl    = meSpeak.speak('hello world', { 'rawdata': 'data-url' });
+var myArray      = meSpeak.speak('hello world', { 'rawdata': 'array' });   // simple array
+
+// playing cached streams (any of the export formats):
+meSpeak.play( stream [, relativeVolume] );
+var stream1 = meSpeak.speak('hello world', { 'rawdata': true });
+var stream2 = meSpeak.speak('hello again', { 'rawdata': true });
+var stream3 = meSpeak.speak('hello yet again', { 'rawdata': 'data-url' });
+meSpeak.play(stream1);       // using global volume
+meSpeak.play(stream2, 0.75); // 75% of global volume
+meSpeak.play(stream3);       // v.1.4.2: play data-urls or base64-encoded
+</p>
+
+<p><strong>Note on export formats</strong>, typed Uint8Array (default) vs. simple array:<br />The typed Uint8Array provides a stream ready to be played by the Web Audio API (as a value for a BufferSourceNode), while the plain array (JavaScript Array object) may be best for export (e.g. sending the data to Flash via Falsh's ExternalInterface). The default raw format (Uint8Array) is the preferred format for caching streams to be played later by meSpeak by calling meSpeak.play(), since it provides the least overhead in processing.</p>
+
+<h3>Note on iOS Limitations</h3>
+<p>iOS (currently supported only using Safari) provides a single audio-slot, playing only one sound at a time.<br />
+Thus, any concurrent calls to <tt>meSpeak.speak()</tt> or <tt>meSpeak.play()</tt> will stop any other sound playing.<br />
+Further, iOS reserves volume control to the user exclusively. Any attempt to change the volume by a script will remain without effect.<br />
+Please note that you still need a user-interaction at the very beginning of the chain of events in order to have a sound played by iOS.</p>
+  
+  <h3>Voices Currently Available</h3>
+  <ul>
+    <li><strong>ca</strong> (Catalan)</li>
+    <li><strong>cs</strong> (Czech)</li>
+    <li><strong>de</strong> (German)</li>
+    <li><strong>el</strong> (Greek)</li>
+    <li><strong>en/en</strong> (English)</li>
+    <li><strong>en/en-n</strong> (English, regional)</li>
+    <li><strong>en/en-rp</strong> (English, regional)</li>
+    <li><strong>en/en-sc</strong> (English, Scottish)</li>
+    <li><strong>en/en-us</strong> (English, US)</li>
+    <li><strong>en/en-wm</strong> (English, regional)</li>
+    <li><strong>eo</strong> (Esperanto)</li>
+    <li><strong>es</strong> (Spanish)</li>
+    <li><strong>es-la</strong> (Spanish, Latin America)</li>
+    <li><strong>fi</strong> (Finnish)</li>
+    <li><strong>fr</strong> (French)</li>
+    <li><strong>hu</strong> (Hungarian)</li>
+    <li><strong>it</strong> (Italian)</li>
+    <li><strong>kn</strong> (Kannada)</li>
+    <li><strong>la</strong> (Latin)</li>
+    <li><strong>lv</strong> (Latvian)</li>
+    <li><strong>nl</strong> (Dutch)</li>
+    <li><strong>pl</strong> (Polish)</li>
+    <li><strong>pt</strong> (Portuguese, Brazil)</li>
+    <li><strong>pt-pt</strong> (Portuguese, European)</li>
+    <li><strong>ro</strong> (Romanian)</li>
+    <li><strong>sk</strong> (Slovak)</li>
+    <li><strong>sv</strong> (Swedish)</li>
+    <li><strong>tr</strong> (Turkish)</li>
+    <li><strong>zh</strong> (Mandarin Chinese, Pinyin)<a href="#note_zh" class="noteLink">*</a></li>
+    <li><strong>zh-yue</strong> (Cantonese Chinese, Provisional)<a href="#note_zh-yue" class="noteLink">**</a></li>
+  </ul>
+
+  <h3>JSON File Formats</h3>
+  <p>1) Config-data: &quot;mespeak_config.json&quot;:<br />The config-file includes all data to configure the tone (e.g.: male or female) of the electronic voice.</p>
+  <p class="codesample">{
+  &quot;config&quot;: &quot;&lt;base64-encoded octet stream&gt;&quot;,
+  &quot;phontab&quot;: &quot;&lt;base64-encoded octet stream&gt;&quot;,
+  &quot;phonindex&quot;: &quot;&lt;base64-encoded octet stream&gt;&quot;,
+  &quot;phondata&quot;: &quot;&lt;base64-encoded octet stream&gt;&quot;,
+  &quot;intonations&quot;: &quot;&lt;base64-encoded octet stream&gt;&quot;
+}</p>
+  <p>Finally the JSON object may include an optional voice-object (see below), that will be set up together with the config-data:</p>
+  <p class="codesample">{
+  ...
+  &quot;voice&quot;: { &lt;voice-data&gt; }
+}</p>
+  
+  <p>2) Voice-data: &quot;voice.json&quot;:<br />A voice-file includes the ids of the voice and the dictionary used by this voice, and the binary data of theses two files.</p>
+  <p class="codesample">{
+  &quot;voice_id&quot;: &quot;&lt;voice-identifier&gt;&quot;,
+  &quot;dict_id&quot;: &quot;&lt;dict-identifier&gt;&quot;,
+  &quot;dict&quot;: &quot;&lt;base64-encoded octet stream&gt;&quot;,
+  &quot;voice&quot;: &quot;&lt;base64-encoded octet stream&gt;&quot;
+}</p>
+  <p>Alternatively the value of <tt>&quot;voice&quot;</tt> may be a text-string, if an additional property <tt>&quot;voice_encoding&quot;: &quot;text&quot;</tt> is provided.<br />This shold allow for quick changes and testing:</p>
+  <p class="codesample">{
+  &quot;voice_id&quot;: &quot;&lt;voice-identifier&gt;&quot;,
+  &quot;dict_id&quot;: &quot;&lt;dict-identifier&gt;&quot;,
+  &quot;dict&quot;: &quot;&lt;base64-encoded octet stream&gt;&quot;,
+  &quot;voice&quot;: &quot;&lt;text-string&gt;&quot;,
+  &quot;voice_encoding&quot;: &quot;text&quot;
+}</p>
+
+  <p>Both config-data and voice-data may be loaded and switched on the fly to (re-)configure meSpeak.js.</strong></p>
+  <p>For a guide to customizing languages and voices, see <em><a href="voices-and-languages.html">meSpeak &ndash; Voices &amp; Languages</a></em>.
+
+  <h3>Deferred Calls</h3>
+  <p>In case that speak() is called before configuration and/or voice data has been loaded, the call will be deferred and executed after set up.<br />See this <a href="deferred-call-demo.html">page</a> for an example. You may reset the queue manually by calling</p>
+  <p class="codesample">meSpeak.resetQueue();</p>
+
+  <h3>Amplitude and Volume</h3>
+  <p>There are now two separate parameters or options to control the volume of the spoken text: amplitude and volume.<br />While <em>amplitude</em> affects the generation of the sound stream by the TTS-algorithm, <em>volume</em> controls the playback volume of the browser. By the use of <em>volume</em> you can cache a generated stream and still provide an individual volume level at playback time. Please note that there is a global volume (controlled by <tt>setVolume()</tt>) and an individual volume level relative to the global one. Both default to 1 (max volume).</p>
+  
+  <h3>Notes on Chinese Languages and Voices</h3>
+  <p>Please note that the Chinese voices do only support Pinyin input (phonetic transcript like &quot;<tt>zhong1guo2</tt>&quot; for &#20013; + &#22269;, China) for &quot;zh&quot; and simple one-to-one translation from single Simplified Chinese characters or Jyutping romanised text for &quot;zh-yue&quot;.</p>
+  <p>The <em>eSpeak</em> documentation provides the following notes:</p>
+  <blockquote id="note_zh" class="note">*) <strong>zh (Mandarin Chinese)</strong>:<br />This speaks Pinyin text and Chinese characters. There is only a simple one-to-one translation of Chinese characters to a single Pinyin pronunciation. There is no attempt yet at recognising different pronunciations of Chinese characters in context, or of recognising sequences of characters as "words". The eSpeak installation includes a basic set of Chinese characters. More are available in an additional data file for Mandarin Chinese at: http://espeak.sourceforge.net/data/.</blockquote>
+  <blockquote id="note_zh-yue" class="note">**) <strong>zh-yue (Cantonese Chinese, Provisional)</strong>:<br />Just a naive simple one-to-one translation from single Simplified Chinese characters to phonetic equivalents in Cantonese. There is limited attempt at disambiguation, grouping characters into words, or adjusting tones according to their surrounding syllables. This voice needs Chinese character to phonetic translation data, which is available as a separate download for Cantonese at: http://espeak.sourceforge.net/data/.<br />The voice can also read Jyutping romanised text.</blockquote>
+  <p>For a simple zh-to-Pinyin translation in JavaScript see: <a href="http://www.masswerk.at/mespeak/zh-pinyin-translator.zip">http://www.masswerk.at/mespeak/zh-pinyin-translator.zip</a></p>
+  
+  <h3>Flash-Fallback for Wave Files</h3>
+  <p>(m)eSpeak produces internally wav-files, which are then played. Internet Explorer 10 supports typed arrays (which are required for the binary logic), but does not provide native playback of wav-files. To provide compatibility for this browser, you could try the experimental <a href="msie_flashFallback/index.html">meSpeak Flash Fallback</a>.</p>
+
+  <h3>Source</h3>
+  <p><strong>Download</strong> (all code under GPL): <a href="mespeak.zip">mespeak.zip</a><br />
+  (v.1.4.3, last update: 2013-07-19 04:00 GMT)</p>
+  <dl class="history">
+  <dt>v.1.4.3</dt><dd>Better handling for base64-imports when using the HTMLAudioElement for playback with meSpeak.play(). (Less overhead.)</dd>
+  <dt>v.1.4.2</dt><dd>Added base64 or data-url as import-format for meSpeak.play().</dd>
+  <dt>v.1.4.1</dt><dd>Added a guide to voices and languages and an experimental Flash-fallback for MSIE10. No changes to the meSpeak-code.</dd>
+  <dt>v.1.4</dt><dd>Added an option to export data as a plain array.</dd>
+  <dt>v.1.3.1</dt><dd>Fixed a bug in the decoding of text-formatted voice data.</dd>
+  <dt>v.1.3</dt><dd>Added alternative text format for voices.</dd>
+  <dt>v.1.2</dt><dd>Added volume control and capability to play back exported audio-streams.</dd>
+  <dt>v.1.1</dt><dd>Added support for the Web Audio API (AudioContext), which is now the preferred method to play the generated sound. Browsers lacking support for the Web Audio API will use the HTMLAudioElement for playback. (v.1.1 was succesfully tested to play on iOS 6/Safari.) Also added an option to export the raw data in various formats.</dd>
+  <dt>v.1.04</dt><dd>Demo-page: Auto-speak will now be triggered only, if a URL-parameter &quot;auto&quot; set to &quot;true&quot; or &quot;1&quot; is provided.<br />(This additional parameter should inhibit any repeated attempts to play in case the script would fail and the demo-form would be sent via GET-parameters.)</dd>
+  <dt>v.1.03</dt><dd>Added an instant link for auto-speak to this demo-page.</dd>
+  <dt>v.1.02</dt><dd>Added Chinese voice-data (zh, zh-yue) by popular request.</dd>
+  <dt>v.1.01</dt><dd>Added an onload-callback to the assignment of the generated audio-data-URL. This should add compatibility to newer versions of WebKit and Chrome.</dd>
+  <dt>v.1.0</dt><dd>Initial upload.</dd>
+  </dl>
+  
+  <hr class="separator" />
+
+  <h3>About speak.js</h3>
+  <p>
+    <strong>speak.js</strong> is 100% clientside JavaScript. &quot;<a href="https://github.com/kripken/speak.js" target="_blank">speak.js</a>&quot; is a port of <a href="http://espeak.sourceforge.net/" target="_blank">eSpeak</a>, an open source speech synthesizer, which was compiled from C++ to JavaScript using <a href="http://emscripten.org" target="_blank">Emscripten</a>.<br />
+    The project page and source code for this demo can be found <a href="https://github.com/kripken/speak.js" target="_blank">here</a>.
+  </p>
+
+  <p>
+    Browser requirements:
+    <ul class="bottomMargin">
+      <li><strong>Typed arrays</strong>. The eSpeak code is not portable to the extent that would be necessary to avoid using typed arrays.
+          (It should however be possible to rewrite small bits of eSpeak to fix that.)
+          Typed arrays are present in Firefox, Chrome, Webkit, and Safari, but not IE or Opera.</li>
+      <li><strong>Update</strong>: Opposed to the state of the original documentation, newer versions of Opera and IE both provide support for typed arrays.</li>
+    </ul>
+    Note that recent versions of these browsers are needed in most cases.
+  </p>
+</body>
+</html>
