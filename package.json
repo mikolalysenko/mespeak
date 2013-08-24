@@ -1,0 +1,30 @@
+{
+  "name": "mespeak",
+  "version": "0.0.0",
+  "description": "Text to speech synthesizer",
+  "main": "mespeak.full.js",
+  "directories": {
+    "example": "example"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mikolalysenko/mespeak.git"
+  },
+  "keywords": [
+    "text",
+    "to",
+    "speech",
+    "synthesizer",
+    "speak.js",
+    "espeak",
+    "say"
+  ],
+  "author": "Norbert Landsteiner",
+  "license": "GPL",
+  "bugs": {
+    "url": "https://github.com/mikolalysenko/mespeak/issues"
+  }
+}
