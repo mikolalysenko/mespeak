@@ -15,6 +15,15 @@ meSpeak.loadVoice(require("mespeak/voices/en/en-us.json"))
 meSpeak.speak("hello world")
 ```
 
+It also works in node.js too (though audio playback is unsupported):
+
+```javascript
+var meSpeak = require("mespeak")
+meSpeak.loadVoice(require("mespeak/voices/en/en-us.json"))
+process.stdout.write(meSpeak.spe
+
+```
+
 # Install
 
     npm install mespeak
