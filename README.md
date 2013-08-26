@@ -52,7 +52,7 @@ Returns the default voice.  Note that this is set to the first loaded voice init
 ### `meSpeak.setVolume()`
 Sets the volume of playback
 
-### `meSpeak.getVolume()
+### `meSpeak.getVolume()`
 Returns playback volume
 
 ### `meSpeak.play()`
