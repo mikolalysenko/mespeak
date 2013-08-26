@@ -20,8 +20,7 @@ It also works in node.js too (though audio playback is unsupported):
 ```javascript
 var meSpeak = require("mespeak")
 meSpeak.loadVoice(require("mespeak/voices/en/en-us.json"))
-process.stdout.write(meSpeak.spe
-
+process.stdout.write(meSpeak.speak("hello world", {rawdata: "buffer"}))
 ```
 
 # Install
