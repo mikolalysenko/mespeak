@@ -2,7 +2,7 @@
   "name": "mespeak",
   "version": "1.9.6",
   "description": "Text to speech synthesizer",
-  "main": "mespeak.full.js",
+  "main": "src/index.js",
   "directories": {
     "example": "example"
   },
