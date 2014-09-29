@@ -850,12 +850,16 @@ function getDefaultVoice() {
 
 function loadVoice(url, callback) {
 	// public
-	if (url) new HttpRequest(url, voiceRequestCallback, callback);
+	if (typeof url !== 'string') {
+		setVoiceData(url);
+		if (callback) callback(false, url.voice_id);
+	} else if (url) new HttpRequest(url, voiceRequestCallback, callback);
 }
 
 function loadConfig(url) {
 	// public
-	if (url) new HttpRequest(url, configDataRequestCallback, null);
+	if (typeof url === 'object') setConfigData(url);
+	else if (url) new HttpRequest(url, configDataRequestCallback, null);
 }
 
 function isVoiceLoaded(voice) {
