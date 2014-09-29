@@ -875,12 +875,9 @@ function isConfigLoaded() {
 var HttpRequest
 if (typeof window === "undefined") {
 	HttpRequest = function(url, loadCallback, userCallback) {
-		loadCallback(url);
-		this.request = {
-			readyState: 4,
-			localmode: true,
-
-		}
+		var error = new Error("meSpeak: URLs not supported in Node.js");
+		if(userCallback)userCallback(error,null);
+		else throw error;
 	}
 } else {
 	HttpRequest = function(url, loadCallback, userCallback) {
