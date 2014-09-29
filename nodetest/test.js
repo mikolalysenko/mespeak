@@ -1,3 +1,8 @@
 var mespeak = require("../mespeak.full.js")
+mespeak.loadConfig(require("../mespeak_config.json"));
 mespeak.loadVoice(require("../voices/en/en-us.json"))
-process.stdout.write(mespeak.speak("hello", {rawdata:"array"})))
+var data = mespeak.speak("hello", {
+	rawdata: true
+});
+
+console.log(data);
