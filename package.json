@@ -1,8 +1,8 @@
 {
   "name": "mespeak",
-  "version": "1.9.6",
+  "version": "2.0.0",
   "description": "Text to speech synthesizer",
-  "main": "mespeak.full.js",
+  "main": "src/index.js",
   "directories": {
     "example": "example"
   },
