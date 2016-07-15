@@ -9,7 +9,7 @@
 */
 "use strict";
 
-var ESpeak = require("./ESPEAK.js")
+var ESpeak = require("./ESpeak.js")
 
 /* meScript.js essential changes start here */
 
