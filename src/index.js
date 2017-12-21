@@ -326,7 +326,7 @@ function exportStream(stream, format) {
 		case 'base64':
 			return encode64(stream);
 		case 'buffer':
-			return new Buffer(wav);
+			return new Buffer(stream);
 		case 'data-url':
 		case 'data-uri':
 		case 'dataurl':
