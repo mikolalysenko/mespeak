@@ -46,7 +46,7 @@ function fsCreateDataFile(path, fname, data, doNotRegister) {
 // work around a emscripten FS-bug causing the engine to stop at some iteration (80th call)
 // simply create a new instance and reload any files
 function recoverFromFSError(message) {
-	console.log('meSpeak -- recovering from error:', message);
+	message && console.log('meSpeak -- recovering from error:', message);
 	// save any loaded files from broken instance
 	var files = [],
 		f, i, l = fileRegistry.length;
@@ -245,6 +245,9 @@ function speak(text, args, callback, _id) {
 	// returns:
 	// with option "rawdata": stream-object in specified format (or null on failure)
 	// default: returns numeric 32bit id (or 0 on failure)
+	
+	// re-initialize eSpeak on every call to mitigate memory leak
+	recoverFromFSError()
 	if (typeof args !== 'object') args = {};
 	if (!canPlay && !args.rawdata) {
 		console.warn('meSpeak: Can\'t play; No audio support.');
